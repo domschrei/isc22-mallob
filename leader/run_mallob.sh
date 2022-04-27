@@ -7,7 +7,7 @@ command="mpirun --mca btl_tcp_if_include eth0 --allow-run-as-root --hostfile $1 
 `# Executable & formula input` \
 mallob -mono=$2 \
 `# General options` \
--sleep=1000 -t=4 -appmode=fork -nolog -v=3 -interface-fs=0 -trace-dir=competition -subproc-dir=. -max-lits-per-thread=50000000 -pipe-large-solutions=0 -processes-per-host=$processes_per_host -regular-process-allocation=1 -strict-clause-length-limit=20 -clause-buffer-discount=1.0 \
+-sleep=1000 -t=4 -appmode=fork -nolog -v=3 -interface-fs=0 -trace-dir=competition -subproc-dir=. -max-lits-per-thread=50000000 -pipe-large-solutions=0 -processes-per-host=$processes_per_host -regular-process-allocation=1 -strict-clause-length-limit=20 -clause-buffer-discount=0.9 \
 `# SAT solving options` \
 -clause-filter-clear-interval=300 -max-lbd-partition-size=2 -export-chunks=20 \
 `# Kicaliglu portfolio` \
