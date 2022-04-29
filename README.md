@@ -1,18 +1,11 @@
-# SATComp Sample Solver
 
-This repository contains two Dockerfiles that build the Mallob distributed solver using the SAT-Comp 2022 infrastructure.  It is intended to be used for teams to understand how to build solvers for SAT-Comp.
+# Mallob in the International SAT Competition 2022
 
-**N.B.:** Although this repository is released under the MIT-0 license, the Mallob solver that is built by these Docker files is under the [LGPL 3.0](https://opensource.org/licenses/lgpl-3.0.html) license, and that any use/extensions of Mallob will be governed by that license.
+See the following branches of this repository for my submissions:
 
-## Prerequisites
-
-First, this build process has been tested only on linux (AL2 and Ubuntu 20).  Builds on other platforms have not been tested.
- 
-Second, the build process requires that Docker is installed on the machine.  
-
-Third, the Mallob docker images are built on top of the base containers satcomp-base:leader and satcomp-base:worker.
-The process of building these base images (as well as many other aspects of building solvers for SAT-Comp) is described in the README.md file in the [https://github.com/aws-samples/aws-batch-comp-infrastructure-sample](https://github.com/aws-samples/aws-batch-comp-infrastructure-sample) repository. 
-Please follow the steps in this repository up to the point at which the base containers have been built.  
+* Branch `ki` for the Parallel Track
+* Branch `kiki` for the Cloud Track ("pure" configuration, one CDCL solver only)
+* Branch `kicaliglu` for the Cloud Track (diverse portfolio due to the new rules)
 
 ## How to Build
 
