@@ -4,7 +4,7 @@ num_hosts=$(cat $1|wc -l)
 processes_per_host=$(cat $1|grep -oE "slots=[0-9]+"|head -1|grep -oE "[0-9]+")
 
 command="mpirun --mca btl_tcp_if_include eth0 --allow-run-as-root --hostfile $1 \
---use-hwthread-cpus --map-by node:PE=4 --bind-to core --report-bindings \
+--use-hwthread-cpus --map-by numa:PE=4 --bind-to hwthread --report-bindings \
 `# Executable & formula input` \
 mallob -mono=$2 \
 `# General options` \
