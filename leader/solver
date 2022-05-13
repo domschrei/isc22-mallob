@@ -50,7 +50,8 @@ class Runner:
         hostfile_path = os.path.join(request_dir, 'combined_hostfile')
         with open(hostfile_path, 'w+') as f:
             for ip in ips:
-                f.write(f'{ip} slots=16')
+                #f.write(f'{ip} slots=4') # Cloud track
+                f.write(f'{ip} slots=16') # Parallel track
                 f.write('\n')
             return hostfile_path
 
