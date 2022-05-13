@@ -10,7 +10,7 @@ mallob -mono=$2 \
 `# General options` \
 -zero-only-logging -sleep=1000 -t=4 -appmode=fork -nolog -v=3 -interface-fs=0 -trace-dir=competition -pipe-large-solutions=0 -processes-per-host=$processes_per_host -regular-process-allocation \
 `# SAT solving options` \
--omit-solution -max-lits-per-thread=50000000 -strict-clause-length-limit=20 -clause-filter-clear-interval=500 -max-lbd-partition-size=2 -export-chunks=20 \
+-max-lits-per-thread=50000000 -strict-clause-length-limit=20 -clause-filter-clear-interval=500 -max-lbd-partition-size=2 -export-chunks=20 \
 `# Kicaliglu portfolio` \
 -clause-buffer-discount=0.9 -satsolver=kkclkkclkkclkkclccgg `# 8 Kissat, 6 CaDiCaL, 4 Lingeling, 2 Glucose` \
 `# Ki, Kiki portfolio` \
