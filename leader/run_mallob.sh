@@ -12,7 +12,7 @@ mallob -mono=$2 \
 `# SAT solving options` \
 -omit-solution -max-lits-per-thread=50000000 -strict-clause-length-limit=20 -clause-filter-clear-interval=500 -max-lbd-partition-size=2 -export-chunks=20 \
 `# Kicaliglu portfolio` \
--clause-buffer-discount=0.9 -satsolver=kkclkkclkkclkkclccgg `# 8 Kissat, 6 CaDiCaL, 4 Lingeling, 2 Glucose`
+-clause-buffer-discount=0.9 -satsolver=kkclkkclkkclkkclccgg `# 8 Kissat, 6 CaDiCaL, 4 Lingeling, 2 Glucose` \
 `# Ki, Kiki portfolio` \
 `#-clause-buffer-discount=1.0 -satsolver=k`"
 
