@@ -20,3 +20,9 @@ To build the Mallob worker container:
 2. Run `docker build -t mallob:worker .`
 
 After building both images, run `docker image ls` and make sure you see both `mallob:leader` and `mallob:worker` in the list of images.
+
+## License
+
+The sources in this repository, including the Dockerfiles building Mallob, are licensed under MIT-0.
+The sources of Mallob itself are provided under a different license (LGPLv3 by default).
+
