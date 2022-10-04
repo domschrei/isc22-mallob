@@ -12,7 +12,7 @@ mallob -mono=$2 \
 `# SAT solving options` \
 -max-lits-per-thread=50000000 -strict-clause-length-limit=20 -clause-filter-clear-interval=500 -max-lbd-partition-size=2 -export-chunks=20 \
 `# Pure CaDiCaL portfolio` \
--clause-buffer-discount=0.9 -satsolver=c"
+-clause-buffer-discount=1 -satsolver=c"
 
 echo "run_mallob.sh : $num_hosts hosts, $processes_per_host processes per host => $(($num_hosts * $processes_per_host)) MPI processes"
 echo "run_mallob.sh : EXECUTE $command"
