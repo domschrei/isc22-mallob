@@ -21,7 +21,7 @@ class Runner:
         stderr_target_loc = os.path.join(self.request_directory, "stderr.log")
         
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        with open(os.path.join(self.request_directory, stdout_target_loc), "w") as stdout_handle:
+        with open(stdout_target_loc, "w") as stdout_handle:
             for line in proc.stdout:
                 line_str = line.decode("UTF-8")
                 self.logger.info(f"STDOUT: {line_str}")
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     
     request_directory = sys.argv[1]
     runner = Runner(request_directory)
-    runner.logger.info("Hello from /competition/solver")
+    runner.logger.info(f"Hello from /competition/solver.  Request directory is {request_directory}")
     
     input_json = runner.get_input_json()
     cmd = runner.get_command(input_json)
