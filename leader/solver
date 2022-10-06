@@ -4,40 +4,111 @@ import logging
 import os
 import subprocess
 import sys
+import threading
+import time
+from threading import Timer
+
+import signal
+from subprocess import Popen
+from subprocess import TimeoutExpired
+from typing import Callable
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+# Class to help identify when a timeout has been triggered
+class _TimeoutRecorder:
+    __timed_out: bool = False
+
+    def record_timeout(self):
+        self.__timed_out = True
+
+    def is_timed_out(self) -> bool:
+        return self.__timed_out
 
 class Runner:
     def __init__(self, request_directory: str):
         self.logger = logging.getLogger("Runner")
         self.logger.setLevel(logging.INFO)
         self.request_directory = request_directory
+        os.environ['PYTHONUNBUFFERED'] = "1"
+        self.sigterm_grace_seconds = 10
 
-    def run(self, cmd: list):
+    def killpg_if_running(self, process: Popen, sigkill_grace_seconds: int, post_kill_hook: Callable[[], None] = None) -> None:
+        self.__sendpg_signal(process, signal.SIGTERM, post_kill_hook)
+        try:
+            process.wait(sigkill_grace_seconds)
+        except TimeoutExpired:
+            self.__sendpg_signal(process, signal.SIGKILL)
+
+
+    def __sendpg_signal(self, proc: Popen, proc_signal: signal.Signals, post_kill_hook: Callable[[], None] = None) -> None:
+        try:
+            pg_id = os.getpgid(proc.pid)
+            self.logger.info("Sending %s to process group %d for process %d", proc_signal, pg_id, proc.pid)
+            os.killpg(pg_id, proc_signal)
+            if post_kill_hook:
+                post_kill_hook()
+        except ProcessLookupError:
+            # Process not found, so we can assume it has already ended. This can happen because of
+            # race-conditions around when the process finishes, this method is called, and timeout
+            # cancelled
+            self.logger.debug("No process group for process %d found. Ignoring %s.", proc.pid, proc_signal)
+
+    def process_stream(self, stream, str_name, file_handle):
+        line = stream.readline()
+        while line != "":
+            self.logger.info(f"{str_name}: {line}")
+            file_handle.write(line)
+            line = stream.readline()
+
+    def run(self, cmd: list, timeout_seconds, is_append):
         self.logger.info("Running command: %s", str(cmd))
         
         stdout_target_loc = os.path.join(self.request_directory, "stdout.log")
         stderr_target_loc = os.path.join(self.request_directory, "stderr.log")
         
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        with open(os.path.join(self.request_directory, stdout_target_loc), "w") as stdout_handle:
-            for line in proc.stdout:
-                line_str = line.decode("UTF-8")
-                self.logger.info(f"STDOUT: {line_str}")
-                stdout_handle.write(line_str)
-        #with open(os.path.join(self.request_directory, stderr_target_loc), "w") as stderr_handle:
-        #    for line in proc.stderr:
-        #        line_str = line.decode("UTF-8")
-        #        self.logger.info(f"STDERR: {line_str}")
-        #        stderr_handle.write(line_str)
+        access = "a" if is_append else "w"
 
-        return_code = proc.returncode
-       
+        with open(stdout_target_loc, access) as stdout_handle:
+            with open(stderr_target_loc, access) as stderr_handle:
+                start = time.monotonic()
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    universal_newlines=True, start_new_session=True)
+                stdout_t = threading.Thread(target = self.process_stream, args=(proc.stdout, "STDOUT", stdout_handle))
+                stderr_t = threading.Thread(target = self.process_stream, args=(proc.stderr, "STDERR", stderr_handle))
+                stdout_t.start()
+                stderr_t.start()
+                timeout_recorder = _TimeoutRecorder()
+                timeout_timer = Timer(
+                    timeout_seconds + self.sigterm_grace_seconds,
+                    lambda: self.killpg_if_running(process=proc,
+                                                        # Arbitrarily picked to fail fast
+                                                        sigkill_grace_seconds=3,
+                                                        post_kill_hook=timeout_recorder.record_timeout))
+                try: 
+                    timeout_timer.start()
+                    return_code = proc.wait()
+                except Exception as e:
+                    self.logger.info(f"Exception occurred during job run: {e}")
+                    if not return_code:
+                        return_code = -1
+                finally:
+                    timeout_timer.cancel()
+                    stdout_t.join()
+                    stderr_t.join()
+
+                stop = time.monotonic()
+                timing = stop-start
+                timing_str = f">>>>>{cmd[0]} : {timing} seconds<<<<<\n"
+                self.logger.info(f"STDERR: {timing_str}")
+                stderr_handle.write(timing_str)
+                
         return {
             "stdout": stdout_target_loc,
             "stderr": stderr_target_loc,
             "return_code": return_code,
+            "time": timing,
+            "timed_out": timeout_recorder.is_timed_out(),
             "output_directory": self.request_directory
         }
 
@@ -93,14 +164,14 @@ if __name__ == "__main__":
     
     request_directory = sys.argv[1]
     runner = Runner(request_directory)
-    runner.logger.info("Hello from /competition/solver")
+    runner.logger.info(f"Hello from /competition/solver.  Request directory is {request_directory}")
     
     input_json = runner.get_input_json()
     cmd = runner.get_command(input_json)
     
     runner.logger.info("Running solver ...")
     
-    output = runner.run(cmd)
+    output = runner.run(cmd, 990, False)
     result = MallobParser.get_result(output["stdout"])
     logging.info(f"RESULT: {result}")
     solver_output = {
