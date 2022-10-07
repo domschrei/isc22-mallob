@@ -171,7 +171,7 @@ if __name__ == "__main__":
     
     runner.logger.info("Running solver ...")
     
-    output = runner.run(cmd, 990, False)
+    output = runner.run(cmd, 1000, False)
     result = MallobParser.get_result(output["stdout"])
     logging.info(f"RESULT: {result}")
     solver_output = {
