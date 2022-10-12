@@ -1,6 +1,6 @@
 #! /bin/sh
 cd leader
-docker build -t mallob-calrat:leader .
+docker build -t mallob-calrat-proof:leader .
 cd ../worker
-docker build -t mallob-calrat:worker .
+docker build -t mallob-calrat-proof:worker .
 cd ..
