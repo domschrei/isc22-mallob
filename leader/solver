@@ -234,7 +234,8 @@ class MallobParser:
             # Not so proud of this, but it works.
 
             for elem in re.findall("TIMING (.*) (.*)", raw_logs):
-                timings.append(elem[0], elem[1])
+                print(f"I found one!: {elem[0]}, {elem[1]}")
+                timings.append((elem[0], elem[1]))
 
         with open(stderr_file, 'a') as f:
             for (task, time_required) in timings:
