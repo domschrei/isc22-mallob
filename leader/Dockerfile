@@ -53,6 +53,8 @@ RUN whoami
 USER root
 RUN DEBIAN_FRONTEND=noninteractive apt install -y libjemalloc-dev libjemalloc2 gdb psmisc
 RUN apt-get update && apt install -y libboost-all-dev
+RUN mkdir /logs
+
 USER ecs-user
 WORKDIR /
 # Copy mallob and solver scripts
@@ -60,11 +62,6 @@ COPY --from=builder /mallob/build/mallob mallob
 COPY --from=builder /mallob/build/mallob_sat_process mallob_sat_process
 COPY --from=builder /mallob/build/mallob_process_dispatcher mallob_process_dispatcher
 COPY --chown=ecs-user /run_mallob.sh /competition
-# COPY --chown=ecs-user /solver /competition
-# COPY --chown=ecs-user /cleanup /competition
-
-
-# Copy mallob and solver scripts
 COPY --from=builder /drat-trim/lrat-check lrat-check
 COPY --from=builder /drat-trim/compress compress
 COPY --from=builder /drat-trim/decompress decompress
@@ -87,6 +84,7 @@ COPY --chown=ecs-user cleanup /competition
 
 USER root
 RUN chmod +x /competition/cleanup
+RUN chown ecs-user /logs
 USER ecs-user
 RUN chmod +x /competition/run_mallob.sh
 RUN chmod +x /competition/solver
@@ -96,3 +94,4 @@ RUN chmod +x /competition/proof_compose.sh
 RUN chmod +x /competition/proof_renumber.sh
 RUN chmod +x /competition/proof_check.sh
 RUN chmod +x /competition/drat_compose.sh
+
