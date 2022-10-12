@@ -27,7 +27,9 @@ class PipelineMode(Enum):
     HUNDRED_MACHINES_16HWT_PAR_PPROD = 3
 
 # TODO Change this to the desired mode of execution.
-pipeline_mode = PipelineMode.SINGLE_MACHINE_64HWT_PAR_PPROD
+# pipeline_mode = PipelineMode.SINGLE_MACHINE_64HWT_PAR_PPROD
+pipeline_mode = PipelineMode.HUNDRED_MACHINES_16HWT_PAR_PPROD
+
 
 #######################################################
 
@@ -39,11 +41,11 @@ def reverse_function(x):
 
 # total number of *local* slots (MPI processes) on this machine
 def get_num_local_slots():
-    #return 2 # only for testing!!
-    if pipeline_mode == PipelineMode.HUNDRED_MACHINES_16HWT_PAR_PPROD:
-        return 4 # distributed setup: 16/4 = 4 slots
-    else:
-        return 16 # shared-memory setup: 64/4 = 16 slots
+    return 4 # only for testing!!
+    # if pipeline_mode == PipelineMode.HUNDRED_MACHINES_16HWT_PAR_PPROD:
+    #     return 4 # distributed setup: 16/4 = 4 slots
+    # else:
+    #     return 16 # shared-memory setup: 64/4 = 16 slots
 
 # total time to run in seconds.  This allows ~1 minute of gracetime before ATS would pull the plug.
 TOTAL_TIME = 4940
@@ -249,8 +251,8 @@ def main():
         # Pipeline for parallel proof production
         unsat_sequence = [lambda: runner.get_compress_preprocessing_proof_command(input_json),
                           lambda: runner.get_renumber_command(input_json), 
-                          lambda: runner.get_wc_command(),
-                          lambda: runner.get_check_command(input_json)]
+                          lambda: runner.get_check_command(input_json),
+                          lambda: runner.get_wc_command()]
 
     output = runner.run(cmd, time_remaining)
     result = MallobParser.get_result(output["stdout"])
