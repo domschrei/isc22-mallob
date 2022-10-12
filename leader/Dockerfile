@@ -40,7 +40,7 @@ RUN make
 # Build drat-trim
 RUN echo "Making drat-trim"
 WORKDIR /
-RUN git clone https://github.com/mww-aws/drat-trim.git
+RUN git clone https://github.com/marijnheule/drat-trim.git
 WORKDIR /drat-trim
 RUN sed -i 's/define MODE	1/define MODE	2/g' decompress.c
 RUN make
