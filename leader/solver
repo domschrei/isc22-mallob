@@ -5,8 +5,8 @@ import os
 import subprocess
 import sys
 import threading
-import glob
 import time
+import re
 from threading import Timer
 
 import signal
@@ -94,6 +94,7 @@ class Runner:
         while line != "":
             self.logger.info(f"{str_name}: {line}")
             file_handle.write(line)
+            # file_handle.flush()
             line = stream.readline()
 
     def run(self, cmd: list, timeout_seconds, is_append=False):
@@ -208,24 +209,43 @@ class Runner:
 
 class MallobParser:
     @staticmethod
-    def get_result(output_file):
+    def get_result(output_file, stderr_file):
         """
         TODO: Participants should replace this with something more robust for their own solver!
         """
         with open(output_file) as f:
+            timings = []
+
             raw_logs = f.read()
             if "s UNSATISFIABLE" in raw_logs:
-                return "UNSATISFIABLE"
+                outcome = "UNSATISFIABLE"
             elif "s SATISFIABLE" in raw_logs:
-                return "SATISFIABLE"
+                outcome = "SATISFIABLE"
             elif "result SAT" in raw_logs:
-                return "SATISFIABLE"
+                outcome = "SATISFIABLE"
             elif "result UNSAT" in raw_logs:
-                return "UNSATISFIABLE"
+                outcome = "UNSATISFIABLE"
             elif "[ERROR]" in raw_logs:
-                return "ERROR"
+                outcome = "ERROR"
             else:
-                return "UNKNOWN"
+                outcome = "UNKNOWN"
+
+            # Some hacks to get all the timings into stderr.
+            # Not so proud of this, but it works.
+
+            for elem in re.findall("TIMING (.*) (.*)", raw_logs):
+                timings.append(elem[0], elem[1])
+
+        with open(stderr_file, 'a') as f:
+            for (task, time_required) in timings:
+                timing_str = f">>>>>{task} : {time_required} seconds<<<<<\n"
+                f.write(timing_str)
+        
+        return outcome
+
+    
+
+            
 
 
 def main():
@@ -239,6 +259,13 @@ def main():
     runner.logger.info("Running solver ...")
     time_remaining = TOTAL_TIME
 
+    task_output = runner.run(cmd, time_remaining)
+    result = MallobParser.get_result(task_output["stdout"], task_output["stderr"])
+    return_code = task_output["return_code"]
+    runner.logger.info(f"RESULT: {result}")
+    time_remaining = time_remaining - task_output["time"]
+    
+    # proof check sequence
     if pipeline_mode == PipelineMode.SINGLE_MACHINE_64HWT_SEQ_PPROD_AND_DRAT:
         unsat_sequence = [lambda: runner.get_compress_preprocessing_proof_command(input_json),
                           lambda: runner.get_combine_command(input_json),
@@ -254,23 +281,17 @@ def main():
                           lambda: runner.get_check_command(input_json),
                           lambda: runner.get_wc_command()]
 
-    output = runner.run(cmd, time_remaining)
-    result = MallobParser.get_result(output["stdout"])
-    return_code = output["return_code"]
-    runner.logger.info(f"RESULT: {result}")
-    time_remaining = time_remaining - output["time"]
-    # proof check
-    if (result == "UNSATISFIABLE" and not output["timed_out"]):
+    if (result == "UNSATISFIABLE" and not task_output["timed_out"]):
         for call in unsat_sequence: 
             cmd = call()
-            result = runner.run(cmd, time_remaining, True)
-            time_remaining = time_remaining - result["time"]
-            return_code = result["return_code"]
+            task_output = runner.run(cmd, time_remaining, True)
+            time_remaining = time_remaining - task_output["time"]
+            return_code = task_output["return_code"]
             if return_code:
                 runner.logger.info(f"Cmd: {cmd} return code was non-zero ({return_code}).  Returning 'ERROR'.")
                 result = "ERROR"
                 break
-            elif output["timed_out"]:
+            elif task_output["timed_out"]:
                 runner.logger.info(f"Time-out during cmd {cmd}.  Returning 'UNKNOWN'.")
                 result = "UNKNOWN"
                 break
@@ -284,8 +305,8 @@ def main():
         "return_code": return_code,
         "result": result,
         "artifacts": {
-            "stdout_path": output["stdout"],
-            "stderr_path": output["stderr"]
+            "stdout_path": task_output["stdout"],
+            "stderr_path": task_output["stderr"]
         }
     }
     
