@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from distutils.log import ERROR
 import json
 import logging
 import os
@@ -7,7 +8,9 @@ import sys
 import threading
 import time
 import re
+import concurrent.futures
 from threading import Timer
+from concurrent.futures import ThreadPoolExecutor
 
 import signal
 from subprocess import Popen
@@ -28,7 +31,7 @@ class PipelineMode(Enum):
 
 # TODO Change this to the desired mode of execution.
 # pipeline_mode = PipelineMode.SINGLE_MACHINE_64HWT_PAR_PPROD
-pipeline_mode = PipelineMode.SINGLE_MACHINE_64HWT_PAR_PPROD
+pipeline_mode = PipelineMode.SINGLE_MACHINE_64HWT_SEQ_PPROD_AND_DRAT
 
 
 #######################################################
@@ -41,11 +44,11 @@ def reverse_function(x):
 
 # total number of *local* slots (MPI processes) on this machine
 def get_num_local_slots():
-    # return 4 # only for testing!!
-    if pipeline_mode == PipelineMode.HUNDRED_MACHINES_16HWT_PAR_PPROD:
-        return 4 # distributed setup: 16/4 = 4 slots
-    else:
-        return 16 # shared-memory setup: 64/4 = 16 slots
+    return 4 # only for testing!!
+    # if pipeline_mode == PipelineMode.HUNDRED_MACHINES_16HWT_PAR_PPROD:
+    #     return 4 # distributed setup: 16/4 = 4 slots
+    # else:
+    #     return 16 # shared-memory setup: 64/4 = 16 slots
 
 # total time to run in seconds.  This allows ~1 minute of gracetime before ATS would pull the plug.
 TOTAL_TIME = 4940
@@ -68,6 +71,10 @@ class Runner:
         os.environ['PYTHONUNBUFFERED'] = "1"
         self.sigterm_grace_seconds = 10
 
+        # for sequential access to stdout/stderr files.
+        self.stderr_lock = threading.Lock()
+        self.stdout_lock = threading.Lock()
+
     def killpg_if_running(self, process: Popen, sigkill_grace_seconds: int, post_kill_hook: Callable[[], None] = None) -> None:
         self.__sendpg_signal(process, signal.SIGTERM, post_kill_hook)
         try:
@@ -89,11 +96,14 @@ class Runner:
             # cancelled
             self.logger.debug("No process group for process %d found. Ignoring %s.", proc.pid, proc_signal)
 
-    def process_stream(self, stream, str_name, file_handle):
+    # since we make the DRAT and LRAT proofs proceed in parallel, 
+    # for this version of the file, we need locks to ensure sequential access.
+    def process_stream(self, stream, str_name, file_handle, lock):
         line = stream.readline()
         while line != "":
             self.logger.info(f"{str_name}: {line}")
-            file_handle.write(line)
+            with lock: 
+                file_handle.write(line)
             # file_handle.flush()
             line = stream.readline()
 
@@ -110,8 +120,8 @@ class Runner:
                 start = time.monotonic()
                 proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     universal_newlines=True, start_new_session=True)
-                stdout_t = threading.Thread(target = self.process_stream, args=(proc.stdout, "STDOUT", stdout_handle))
-                stderr_t = threading.Thread(target = self.process_stream, args=(proc.stderr, "STDERR", stderr_handle))
+                stdout_t = threading.Thread(target = self.process_stream, args=(proc.stdout, "STDOUT", stdout_handle, self.stdout_lock))
+                stderr_t = threading.Thread(target = self.process_stream, args=(proc.stderr, "STDERR", stderr_handle, self.stderr_lock))
                 stdout_t.start()
                 stderr_t.start()
                 timeout_recorder = _TimeoutRecorder()
@@ -246,7 +256,21 @@ class MallobParser:
 
     
 
-            
+def run_sequence(runner, sequence, result, time_remaining):            
+    for call in sequence: 
+        cmd = call()
+        task_output = runner.run(cmd, time_remaining, True)
+        time_remaining = time_remaining - task_output["time"]
+        return_code = task_output["return_code"]
+        if return_code:
+            runner.logger.info(f"Cmd: {cmd} return code was non-zero ({return_code}).  Returning 'ERROR'.")
+            result = "ERROR"
+            break
+        elif task_output["timed_out"]:
+            runner.logger.info(f"Time-out during cmd {cmd}.  Returning 'UNVERIFIED UNSATISFIABLE'.")
+            result = "UNVERIFIED UNSATISFIABLE"
+            break    
+    return result
 
 
 def main():
@@ -269,35 +293,34 @@ def main():
         result = "TIMED_OUT"
 
     # proof check sequence
-    if pipeline_mode == PipelineMode.SINGLE_MACHINE_64HWT_SEQ_PPROD_AND_DRAT:
-        unsat_sequence = [lambda: runner.get_compress_preprocessing_proof_command(input_json),
-                          lambda: runner.get_combine_command(input_json),
-                          lambda: runner.get_renumber_command(input_json), 
-                          lambda: runner.get_wc_command(),
-                          lambda: runner.get_check_command(input_json),
-                          lambda: runner.get_drat_combine_command(input_json),
-                          lambda: runner.get_drat_check_command(input_json)]
-    else:
-        # Pipeline for parallel proof production
-        unsat_sequence = [lambda: runner.get_compress_preprocessing_proof_command(input_json),
+    assert pipeline_mode == PipelineMode.SINGLE_MACHINE_64HWT_SEQ_PPROD_AND_DRAT
+    if (result == "UNSATISFIABLE"):
+
+        unsat_sequence_0 = [lambda: runner.get_compress_preprocessing_proof_command(input_json)]
+        unsat_sequence_par_1 = [lambda: runner.get_combine_command(input_json),
                           lambda: runner.get_renumber_command(input_json), 
                           lambda: runner.get_check_command(input_json),
                           lambda: runner.get_wc_command()]
+        unsat_sequence_par_2 = [lambda: runner.get_drat_combine_command(input_json),
+                          lambda: runner.get_drat_check_command(input_json)]
 
-    if (result == "UNSATISFIABLE"):
-        for call in unsat_sequence: 
-            cmd = call()
-            task_output = runner.run(cmd, time_remaining, True)
-            time_remaining = time_remaining - task_output["time"]
-            return_code = task_output["return_code"]
-            if return_code:
-                runner.logger.info(f"Cmd: {cmd} return code was non-zero ({return_code}).  Returning 'ERROR'.")
-                result = "ERROR"
-                break
-            elif task_output["timed_out"]:
-                runner.logger.info(f"Time-out during cmd {cmd}.  Returning 'UNVERIFIED UNSATISFIABLE'.")
-                result = "UNVERIFIED UNSATISFIABLE"
-                break
+        result = run_sequence(runner, unsat_sequence_0, result, time_remaining) 
+        executor = ThreadPoolExecutor(2)
+        futures = [executor.submit(run_sequence, runner, unsat_sequence_par_1, result, time_remaining), \
+                   executor.submit(run_sequence, runner, unsat_sequence_par_2, result, time_remaining)]
+        concurrent.futures.wait(futures, timeout=None, return_when=concurrent.futures.ALL_COMPLETED)
+        result_seq = futures[0].result()
+        result_drat = futures[1].result()
+
+        if (result_seq == result_drat): 
+            result = result_seq
+        if (result_seq == "ERROR" or result_drat == "ERROR"):
+            result = "ERROR"
+        elif (result_seq == "UNVERIFIED UNSATISFIABLE" or result_drat == "UNVERIFIED UNSATISFIABLE"):
+            result = "UNVERIFIED UNSATISFIABLE"
+        else: 
+            raise Exception(f"Unexpected combination of results! {result_seq} and {result_drat}")
+        
         if result == "UNSATISFIABLE": 
             runner.logger.info(f"Checker return code was zero.  Check successful!")
                     
