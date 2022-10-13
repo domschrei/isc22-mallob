@@ -46,9 +46,9 @@ def reverse_function(x):
 def get_num_local_slots():
     return 4 # only for testing!!
     # if pipeline_mode == PipelineMode.HUNDRED_MACHINES_16HWT_PAR_PPROD:
-    #     return 4 # distributed setup: 16/4 = 4 slots
+    #      return 4 # distributed setup: 16/4 = 4 slots
     # else:
-    #     return 16 # shared-memory setup: 64/4 = 16 slots
+    #      return 16 # shared-memory setup: 64/4 = 16 slots
 
 # total time to run in seconds.  This allows ~1 minute of gracetime before ATS would pull the plug.
 TOTAL_TIME = 4940
@@ -193,10 +193,20 @@ class Runner:
         args = ['/competition/compress_preprocessing_proof.sh']
         return args
 
+    # MWW NOTE: This is really brittle; should be replaced with code that does proper 
+    # sorting based on the number of files.
+    def determine_proof_files(self): 
+        rootdir = '/logs/processes/proof#1'
+        proof_files = [f'{rootdir}/proof.{x+1}.lrat' for x in range(get_num_local_slots()*4)]
+        print(f"The list of proof files is: {proof_files}")
+        return proof_files
+
     def get_combine_command(self, input_json):
         problem_path = "/logs/processes/input_units_removed.cnf"
         # D.S.: The proof files are now gathered programmatically within the proof_compose script.
+        # MWW: no; that is broken!
         args = ['/competition/proof_compose.sh', problem_path, '/logs/processes/combined.lrat']
+        args += self.determine_proof_files()
         return args
 
     def get_renumber_command(self, input_json):
@@ -295,9 +305,18 @@ def main():
     # proof check sequence
     assert pipeline_mode == PipelineMode.SINGLE_MACHINE_64HWT_SEQ_PPROD_AND_DRAT
     if (result == "UNSATISFIABLE"):
+#        unsat_sequence = [lambda: runner.get_compress_preprocessing_proof_command(input_json),
+#                          lambda: runner.get_combine_command(input_json),
+#                          lambda: runner.get_renumber_command(input_json), 
+#                          lambda: runner.get_check_command(input_json),
+#                          lambda: runner.get_wc_command(),
+#                          lambda: runner.get_drat_combine_command(input_json),
+#                          lambda: runner.get_drat_check_command(input_json)]
+#        result = run_sequence(runner, unsat_sequence, result, time_remaining) 
 
-        unsat_sequence_0 = [lambda: runner.get_compress_preprocessing_proof_command(input_json)]
-        unsat_sequence_par_1 = [lambda: runner.get_combine_command(input_json),
+        unsat_sequence_0 = [lambda: runner.get_compress_preprocessing_proof_command(input_json),
+                            lambda: runner.get_combine_command(input_json)]
+        unsat_sequence_par_1 = [
                           lambda: runner.get_renumber_command(input_json), 
                           lambda: runner.get_check_command(input_json),
                           lambda: runner.get_wc_command()]
