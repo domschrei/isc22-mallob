@@ -7,7 +7,7 @@ RUN apt-get update \
 
 # Build Mallob
 # This is a single command such that a change in the commit hash will make Docker re-fetch the repository
-RUN git clone https://github.com/domschrei/mallob && cd mallob && git checkout interface && git checkout 35794bfa9d650f7c465c08cd0073a71833119162 && cd ..
+RUN git clone https://github.com/domschrei/mallob.git && cd mallob && git checkout distributed-combine && cd ..
 WORKDIR mallob
 RUN cd lib && bash fetch_and_build_sat_solvers.sh kclgy && cd ..
 RUN mkdir build
