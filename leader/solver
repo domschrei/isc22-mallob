@@ -44,11 +44,11 @@ def reverse_function(x):
 
 # total number of *local* slots (MPI processes) on this machine
 def get_num_local_slots():
-    # return 4 # only for testing!!
-    if pipeline_mode == PipelineMode.HUNDRED_MACHINES_16HWT_PAR_PPROD:
-         return 4 # distributed setup: 16/4 = 4 slots
-    else:
-         return 16 # shared-memory setup: 64/4 = 16 slots
+    return 4 # only for testing!!
+    # if pipeline_mode == PipelineMode.HUNDRED_MACHINES_16HWT_PAR_PPROD:
+    #      return 4 # distributed setup: 16/4 = 4 slots
+    # else:
+    #      return 16 # shared-memory setup: 64/4 = 16 slots
 
 # total time to run in seconds.  This allows ~1 minute of gracetime before ATS would pull the plug.
 TOTAL_TIME = 4800
@@ -282,7 +282,7 @@ def run_sequence(runner, sequence, result, time_remaining):
             runner.logger.info(f"Time-out during cmd {cmd}.  Returning 'UNVERIFIED UNSATISFIABLE'.")
             result = "UNVERIFIED UNSATISFIABLE"
             break    
-    return result
+    return (time_remaining, result)
 
 
 def main():
@@ -325,13 +325,13 @@ def main():
         unsat_sequence_par_2 = [lambda: runner.get_drat_combine_command(input_json),
                           lambda: runner.get_drat_check_command(input_json)]
 
-        result = run_sequence(runner, unsat_sequence_0, result, time_remaining) 
+        (time_remaining, result) = run_sequence(runner, unsat_sequence_0, result, time_remaining) 
         executor = ThreadPoolExecutor(2)
         futures = [executor.submit(run_sequence, runner, unsat_sequence_par_1, result, time_remaining), \
                    executor.submit(run_sequence, runner, unsat_sequence_par_2, result, time_remaining)]
         concurrent.futures.wait(futures, timeout=None, return_when=concurrent.futures.ALL_COMPLETED)
-        result_seq = futures[0].result()
-        result_drat = futures[1].result()
+        (time_remaining_seq, result_seq) = futures[0].result()
+        (time_remaining_drat, result_drat) = futures[1].result()
 
         if (result_seq == result_drat): 
             result = result_seq
