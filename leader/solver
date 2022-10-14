@@ -47,8 +47,8 @@ def get_num_local_slots():
     else:
         return 16 # shared-memory setup: 64/4 = 16 slots
 
-# total time to run in seconds.  This allows ~1 minute of gracetime before ATS would pull the plug.
-TOTAL_TIME = 4940
+# total time to run in seconds.  This allows a few minutes of gracetime before ATS would pull the plug.
+TOTAL_TIME = 4800
 
 # Class to help identify when a timeout has been triggered
 class _TimeoutRecorder:
@@ -98,8 +98,10 @@ class Runner:
             line = stream.readline()
 
     def run(self, cmd: list, timeout_seconds, is_append):
-        self.logger.info("Running command: %s", str(cmd))
-        
+        self.logger.info(f"Running command: {str(cmd)} with time remaining {timeout_seconds}")
+        if timeout_seconds < 0:
+            raise Exception(f"No time to run command: {str(cmd)}.  Time remaining: {timeout_seconds}")
+
         stdout_target_loc = os.path.join(self.request_directory, "stdout.log")
         stderr_target_loc = os.path.join(self.request_directory, "stderr.log")
         
@@ -116,7 +118,7 @@ class Runner:
                 stderr_t.start()
                 timeout_recorder = _TimeoutRecorder()
                 timeout_timer = Timer(
-                    timeout_seconds + self.sigterm_grace_seconds,
+                    timeout_seconds - self.sigterm_grace_seconds,
                     lambda: self.killpg_if_running(process=proc,
                                                         # Arbitrarily picked to fail fast
                                                         sigkill_grace_seconds=3,
@@ -138,7 +140,6 @@ class Runner:
                 timing_str = f">>>>>{cmd[0]} : {timing} seconds<<<<<\n"
                 self.logger.info(f"STDERR: {timing_str}")
                 stderr_handle.write(timing_str)
-                
         return {
             "stdout": stdout_target_loc,
             "stderr": stderr_target_loc,
@@ -234,7 +235,7 @@ class MallobParser:
             # Not so proud of this, but it works.
 
             for elem in re.findall("TIMING (.*) (.*)", raw_logs):
-                print(f"I found one!: {elem[0]}, {elem[1]}")
+                # print(f"I found one!: {elem[0]}, {elem[1]}")
                 timings.append((elem[0], elem[1]))
 
         with open(stderr_file, 'a') as f:
