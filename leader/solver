@@ -335,7 +335,7 @@ def main():
 
         if (result_seq == result_drat): 
             result = result_seq
-        if (result_seq == "ERROR" or result_drat == "ERROR"):
+        elif (result_seq == "ERROR" or result_drat == "ERROR"):
             result = "ERROR"
         elif (result_seq == "UNVERIFIED UNSATISFIABLE" or result_drat == "UNVERIFIED UNSATISFIABLE"):
             result = "UNVERIFIED UNSATISFIABLE"
