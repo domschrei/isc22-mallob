@@ -116,7 +116,7 @@ class Runner:
                 stderr_t.start()
                 timeout_recorder = _TimeoutRecorder()
                 timeout_timer = Timer(
-                    timeout_seconds + self.sigterm_grace_seconds,
+                    timeout_seconds - self.sigterm_grace_seconds,
                     lambda: self.killpg_if_running(process=proc,
                                                         # Arbitrarily picked to fail fast
                                                         sigkill_grace_seconds=3,

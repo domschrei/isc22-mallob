@@ -12,6 +12,12 @@ function cleanup() {
     rm -rf /logs/tracedir/*
     rm -rf /logs/extmem/*
     rm -rf /logs/preprocessor/*
+    killall lrat-check 
+    killall compress
+    killall preprocess-cnf
+    killall compose-proofs
+    killall renumber-proofs
+    killall decompress
 }
 
 if ls /logs/tracedir|grep -q mallob_thread_trace; then
