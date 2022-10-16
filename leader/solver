@@ -51,7 +51,7 @@ def get_num_local_slots():
          return 16 # shared-memory setup: 64/4 = 16 slots
 
 # total time to run in seconds.  This allows ~1 minute of gracetime before ATS would pull the plug.
-TOTAL_TIME = 4800
+TOTAL_TIME = 4900
 
 # Class to help identify when a timeout has been triggered
 class _TimeoutRecorder:
