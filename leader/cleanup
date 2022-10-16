@@ -33,4 +33,4 @@ echo "Cleaning up: Killing all mpi processes"
 cleanup 2>&1 > /dev/null
 
 echo "Cleaning up previous proofs..."
-rm -rf "/logs"
+rm -rf "/logs/*"
