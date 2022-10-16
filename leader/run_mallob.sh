@@ -1,20 +1,21 @@
 #!/bin/bash
 
+# Set this to 1 for local tests without the AWS infrastructure 
+# that executes the cleanup scripts.
+pre_cleanup=0
+
 num_hosts=$(cat $1|wc -l)
 processes_per_host=$(cat $1|grep -oE "slots=[0-9]+"|head -1|grep -oE "[0-9]+")
 
 if [ $3 == "SINGLE_MACHINE_64HWT_SEQ_PPROD_AND_DRAT" ]; then
     distributed_proof_assembly=0
     clause_buffer_discount=1.0
-    pre_cleanup=0
 elif [ $3 == "SINGLE_MACHINE_64HWT_PAR_PPROD" ]; then
     distributed_proof_assembly=1
     clause_buffer_discount=1.0
-    pre_cleanup=0
 elif [ $3 == "HUNDRED_MACHINES_16HWT_PAR_PPROD" ]; then
     distributed_proof_assembly=1
     clause_buffer_discount=0.9
-    pre_cleanup=1
 else
     echo "Invalid argument $3"
     exit 1
