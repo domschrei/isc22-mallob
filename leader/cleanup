@@ -7,7 +7,7 @@ function cleanup() {
     pkill -9 mpi
     pkill -9 mallob
     pkill -9 mallob_sat_process
-    rm -rf /dev/shm/edu.kit.mallob.* /tmp/mallob* /competition/mallob_thread_trace_*
+    rm -rf /dev/shm/edu.kit.mallob.* /tmp/mallob* /logs/tracedir/*
     killall dratify
     killall lrat-check 
     killall compress
@@ -18,9 +18,9 @@ function cleanup() {
     killall drat-trim
 }
 
-if ls /competition|grep -q mallob_thread_trace; then
+if ls /logs/tracedir|grep -q mallob_thread_trace; then
     echo "Logging created thread traces"
-    for f in /competition/mallob_thread_trace_*; do 
+    for f in /logs/tracedir/mallob_thread_trace_*; do 
         echo ""
         echo "*************************************"
         echo "Thread trace $f"
