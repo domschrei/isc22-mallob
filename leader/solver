@@ -98,7 +98,7 @@ class Runner:
             line = stream.readline()
 
     def run(self, cmd: list, timeout_seconds, is_append=False):
-        self.logger.info("Running command: %s", str(cmd))
+        self.logger.info(f"Running command: {str(cmd)}.  Time remaining: {timeout_seconds}")
         
         stdout_target_loc = os.path.join(self.request_directory, "stdout.log")
         stderr_target_loc = os.path.join(self.request_directory, "stderr.log")
