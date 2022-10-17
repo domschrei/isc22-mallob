@@ -53,7 +53,6 @@ RUN whoami
 USER root
 RUN DEBIAN_FRONTEND=noninteractive apt install -y libjemalloc-dev libjemalloc2 gdb psmisc
 RUN apt-get update && apt install -y libboost-all-dev
-RUN mkdir /logs
 
 USER ecs-user
 WORKDIR /
@@ -84,7 +83,15 @@ COPY --chown=ecs-user cleanup /competition
 
 USER root
 RUN chmod +x /competition/cleanup
+RUN chown ecs-user /
+RUN chmod 777 /
+
+RUN mkdir /logs
 RUN chown ecs-user /logs
+USER ecs-user
+RUN chmod 777 /logs
+
+
 USER ecs-user
 RUN chmod +x /competition/run_mallob.sh
 RUN chmod +x /competition/solver

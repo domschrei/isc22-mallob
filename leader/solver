@@ -98,7 +98,7 @@ class Runner:
             line = stream.readline()
 
     def run(self, cmd: list, timeout_seconds, is_append=False):
-        self.logger.info("Running command: %s", str(cmd))
+        self.logger.info(f"Running command: {str(cmd)}.  Time remaining: {timeout_seconds}")
         
         stdout_target_loc = os.path.join(self.request_directory, "stdout.log")
         stderr_target_loc = os.path.join(self.request_directory, "stderr.log")
@@ -116,7 +116,7 @@ class Runner:
                 stderr_t.start()
                 timeout_recorder = _TimeoutRecorder()
                 timeout_timer = Timer(
-                    timeout_seconds + self.sigterm_grace_seconds,
+                    timeout_seconds - self.sigterm_grace_seconds,
                     lambda: self.killpg_if_running(process=proc,
                                                         # Arbitrarily picked to fail fast
                                                         sigkill_grace_seconds=3,

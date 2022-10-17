@@ -8,10 +8,12 @@ function cleanup() {
     pkill -9 mallob
     pkill -9 mallob_sat_process
     rm -rf /dev/shm/edu.kit.mallob.* /tmp/mallob*
-    rm -rf /logs/processes/*
-    rm -rf /logs/tracedir/*
-    rm -rf /logs/extmem/*
-    rm -rf /logs/preprocessor/*
+    killall lrat-check 
+    killall compress
+    killall preprocess-cnf
+    killall compose-proofs
+    killall renumber-proofs
+    killall decompress
 }
 
 if ls /logs/tracedir|grep -q mallob_thread_trace; then
@@ -27,3 +29,6 @@ fi
 
 echo "Cleaning up: Killing all mpi processes"
 cleanup 2>&1 > /dev/null
+
+echo "Cleaning up: removing all logs"
+rm -rf logs/*
