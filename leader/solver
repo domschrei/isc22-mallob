@@ -200,6 +200,9 @@ class Runner:
     def determine_proof_files(self): 
         rootdir = '/logs/processes/proof#1'
         proof_files = [f'{rootdir}/proof.{x+1}.lrat' for x in range(get_num_local_slots()*4)]
+        for proof_file in proof_files:
+            open(proof_file, 'a').close()
+
         print(f"The list of proof files is: {proof_files}")
         return proof_files
 
@@ -335,8 +338,13 @@ def main():
 
         if (result_seq == result_drat): 
             result = result_seq
-        elif (result_seq == "ERROR" or result_drat == "ERROR"):
-            result = "ERROR"
+        elif result_seq == "UNSATISFIABLE": 
+            result = "UNSATISFIABLE"
+        elif result_drat == "ERROR":  
+            if time_remaining_drat <= 0:
+                result = "TIMED_OUT" # DRAT fails when it times out. 
+            else:
+                result = "ERROR"
         elif (result_seq == "UNVERIFIED UNSATISFIABLE" or result_drat == "UNVERIFIED UNSATISFIABLE"):
             result = "UNVERIFIED UNSATISFIABLE"
         else: 
