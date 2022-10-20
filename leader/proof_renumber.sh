@@ -10,5 +10,12 @@
 /renumber-proofs --binary --adjust-file /logs/preprocessor/id_map /logs/processes/input_units_removed.cnf \
   /logs/preprocessor/p.lrat /logs/processes/combined.lrat
 # 1.5 is done in proof_compose.sh
+
+# In-between step: DELETE the old LRAT file we don't need any more to save disk space!
+rm /logs/processes/combined.lrat
+
 # 2
 cat /logs/preprocessor/preprocessing-compressed.lrat /logs/preprocessor/p.lrat > /logs/processes/renumbered.lrat
+
+# In-between step: DELETE the old LRAT file we don't need any more to save disk space!
+rm /logs/preprocessor/p.lrat
