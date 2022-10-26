@@ -238,11 +238,20 @@ class MallobParser:
                 # print(f"I found one!: {elem[0]}, {elem[1]}")
                 timings.append((elem[0], elem[1]))
 
+            stats = []
+            for elem in re.findall("PROOFSTATS ([a-z]+)=([0-9]+) ([a-z]+)=([0-9]+) ([a-z]+)=([0-9]+)", raw_logs):
+                stats.append((elem[0], elem[1]))
+                stats.append((elem[2], elem[3]))
+                stats.append((elem[4], elem[5]))
+
         with open(stderr_file, 'a') as f:
             for (task, time_required) in timings:
                 timing_str = f">>>>>{task} : {time_required} seconds<<<<<\n"
                 f.write(timing_str)
-        
+            for (stat, val) in stats:
+                stat_str = f">>>>>{stat} : {val}<<<<<\n"
+                f.write(stat_str)
+
         return outcome
 
     
