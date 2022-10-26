@@ -243,6 +243,15 @@ class MallobParser:
                 stats.append((elem[0], elem[1]))
                 stats.append((elem[2], elem[3]))
                 stats.append((elem[4], elem[5]))
+            
+            errors = []
+            for elem in re.findall(".*ERROR.*", raw_logs):
+                errors.append(elem)
+            warnings = []
+            for elem in re.findall(".*WARN.*", raw_logs):
+                if len(warnings) > 20:
+                    break
+                warnings.append(elem)
 
         with open(stderr_file, 'a') as f:
             for (task, time_required) in timings:
@@ -251,6 +260,12 @@ class MallobParser:
             for (stat, val) in stats:
                 stat_str = f">>>>>{stat} : {val}<<<<<\n"
                 f.write(stat_str)
+            for elem in errors:
+                err_str = f">>>>>ERROR occurred: {elem}<<<<<\n"
+                f.write(err_str)
+            for elem in warnings:
+                warn_str = f">>>>>WARNING found: {elem}<<<<<\n"
+                f.write(warn_str)
 
         return outcome
 
