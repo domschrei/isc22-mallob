@@ -19,13 +19,13 @@ function cleanup() {
 }
 
 if ls /logs/tracedir|grep -q mallob_thread_trace; then
-    echo "Logging created thread traces"
+    echo "Logging created thread traces" 1>&2
     for f in /logs/tracedir/mallob_thread_trace_*; do 
-        echo ""
-        echo "*************************************"
-        echo "Thread trace $f"
-        cat $f
-        echo "*************************************"
+        echo ""                                      1>&2
+        echo "*************************************" 1>&2
+        echo "Thread trace $f"                       1>&2
+        cat $f                                       1>&2
+        echo "*************************************" 1>&2
     done
 fi
 
