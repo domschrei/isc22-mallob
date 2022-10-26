@@ -7,15 +7,14 @@ RUN apt-get update \
     
 # Build Mallob
 # This is a single command such that a change in the commit hash will make Docker re-fetch the repository
-RUN git clone https://github.com/domschrei/mallob.git && cd mallob && git checkout distributed-combine && cd ..
+RUN git clone https://github.com/domschrei/mallob.git && cd mallob && git checkout certified-unsat && cd ..
 
 # Build Mallob
 WORKDIR mallob
 RUN cd lib && bash fetch_and_build_sat_solvers.sh ckly && cd ..
 RUN mkdir build
 RUN cd build \
-  && cmake -DMALLOB_CERTIFIED_UNSAT=1 -DCMAKE_BUILD_TYPE=RELEASE \
-    -DMALLOB_SUBPROC_DISPATCH_PATH=\"./\" -DMALLOB_ASSERT=1 -DMALLOB_USE_GLUCOSE=0 \
+  && cmake -DCMAKE_BUILD_TYPE=RELEASE -DMALLOB_SUBPROC_DISPATCH_PATH=\"./\" -DMALLOB_ASSERT=1 -DMALLOB_USE_GLUCOSE=0 \
     -DMALLOB_USE_ASAN=0 -DMALLOB_USE_JEMALLOC=1 -DMALLOB_JEMALLOC_DIR=/usr/lib/x86_64-linux-gnu \
     -DMALLOB_LOG_VERBOSITY=3 .. \
   && VERBOSE=1 make -j4 \
