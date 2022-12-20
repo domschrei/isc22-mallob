@@ -163,7 +163,7 @@ class Runner:
             return hostfile_path
 
     def get_command(self, input_json):
-        problem_path = input_json.get("problem_path")
+        problem_path = input_json.get("formula_file")
         worker_node_ips = input_json.get("worker_node_ips", [])
         
         combined_hostfile = self.create_hostfile(worker_node_ips, self.request_directory)
@@ -262,8 +262,11 @@ def main():
     request_directory = sys.argv[1]
     runner = Runner(request_directory)
     runner.logger.info("Hello from /competition/solver")
+    runner.logger.info(f"Command line arguments are: {sys.argv}")
     
     input_json = runner.get_input_json()
+
+    runner.logger.info(f'Input json file contents are: {input_json}')
     cmd = runner.get_command(input_json)
     
     runner.logger.info("Running solver ...")
