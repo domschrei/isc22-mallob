@@ -190,21 +190,21 @@ class Runner:
         return args
 
     def get_renumber_command(self, input_json):
-        problem_path = input_json.get("problem_path")
+        problem_path = input_json.get("formula_file")
         args = ['/competition/proof_renumber.sh'] # the arguments are currently baked into the script
         return args
 
     def get_check_command(self, input_json):
-        problem_path = input_json.get("problem_path")
+        problem_path = input_json.get("formula_file")
         args = ['/competition/proof_check.sh', problem_path]
         return args
     
     def get_drat_combine_command(self, input_json):
-        args = ['/competition/drat_compose.sh', input_json.get("problem_path")]
+        args = ['/competition/drat_compose.sh', input_json.get("formula_file")]
         return args
 
     def get_drat_check_command(self, input_json):
-        args = ['/drat-trim', input_json.get("problem_path"), '/logs/processes/final.drat']
+        args = ['/drat-trim', input_json.get("formula_file"), '/logs/processes/final.drat']
         return args
 
 class MallobParser:
