@@ -207,9 +207,17 @@ class Runner:
         args = ['/drat-trim', input_json.get("formula_file"), '/logs/processes/final.drat']
         return args
 
+SAT_RETURN_CODE = 10
+UNSAT_RETURN_CODE = 20
+INTERNAL_ERROR_RETURN_CODE = -100
+UNKNOWN_RETURN_CODE = 0
+SOLVER_TIMED_OUT_RETURN_CODE = 5
+PROOF_TIMED_OUT_RETURN_CODE = 6
+INFRA_TIMED_OUT_RETURN_CODE = 7
+
 class MallobParser:
     @staticmethod
-    def get_result(output_file, stderr_file):
+    def get_result(output_file, stderr_file, timing):
         """
         TODO: Participants should replace this with something more robust for their own solver!
         """
@@ -227,6 +235,8 @@ class MallobParser:
                 outcome = "UNSATISFIABLE"
             elif "[ERROR]" in raw_logs:
                 outcome = "ERROR"
+            elif timing > 1000:
+                outcome = "SOLVER_TIMED_OUT"
             else:
                 outcome = "UNKNOWN"
 
@@ -253,9 +263,20 @@ class MallobParser:
         
         return outcome
 
-    
-
-            
+    @staticmethod
+    def get_return_code(result): 
+        if result == "SATISFIABLE":
+            return SAT_RETURN_CODE  
+        elif result == "UNSATISFIABLE":
+            return UNSAT_RETURN_CODE  
+        elif result == "PROOF_TIMED_OUT":
+            return PROOF_TIMED_OUT_RETURN_CODE 
+        elif result == "SOLVER_TIMED_OUT":
+            return SOLVER_TIMED_OUT_RETURN_CODE   
+        elif result == "UNKNOWN":
+            return UNKNOWN_RETURN_CODE   
+        else:
+            return INTERNAL_ERROR_RETURN_CODE  # ERROR            
 
 
 def main():
@@ -273,12 +294,12 @@ def main():
     time_remaining = TOTAL_TIME
 
     task_output = runner.run(cmd, time_remaining)
-    result = MallobParser.get_result(task_output["stdout"], task_output["stderr"])
-    return_code = task_output["return_code"]
+    result = MallobParser.get_result(task_output["stdout"], task_output["stderr"], task_output["time"])
     runner.logger.info(f"RESULT: {result}")
     time_remaining = time_remaining - task_output["time"]
     if task_output["timed_out"]:
-        result = "TIMED_OUT"
+        result = "SOLVER_TIMED_OUT"
+    return_code = MallobParser.get_return_code(result)
 
     # proof check sequence
     if pipeline_mode == PipelineMode.SINGLE_MACHINE_64HWT_SEQ_PPROD_AND_DRAT:
