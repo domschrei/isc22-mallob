@@ -328,12 +328,13 @@ def main():
                 result = "ERROR"
                 break
             elif task_output["timed_out"]:
-                runner.logger.info(f"Time-out during cmd {cmd}.  Returning 'UNVERIFIED UNSATISFIABLE'.")
-                result = "UNVERIFIED UNSATISFIABLE"
+                runner.logger.info(f"Time-out during cmd {cmd}.  Returning 'PROOF_TIMED_OUT'.")
+                result = "PROOF_TIMED_OUT"
+                return_code = -20
                 break
         if result == "UNSATISFIABLE": 
             runner.logger.info(f"Checker return code was zero.  Check successful!")
-
+            return_code = 20
                     
     # clean up.
     runner.run(['/competition/cleanup'], time_remaining, True)
