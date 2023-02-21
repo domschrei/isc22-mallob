@@ -283,11 +283,8 @@ def main():
     request_directory = sys.argv[1]
     runner = Runner(request_directory)
     runner.logger.info("Hello from /competition/solver")
-    runner.logger.info(f"Command line arguments are: {sys.argv}")
     
     input_json = runner.get_input_json()
-
-    runner.logger.info(f'Input json file contents are: {input_json}')
     cmd = runner.get_command(input_json)
     
     runner.logger.info("Running solver ...")
