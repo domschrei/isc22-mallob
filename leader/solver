@@ -163,7 +163,7 @@ class Runner:
             return hostfile_path
 
     def get_command(self, input_json):
-        problem_path = input_json.get("problem_path")
+        problem_path = input_json.get("formula_file")
         worker_node_ips = input_json.get("worker_node_ips", [])
         
         combined_hostfile = self.create_hostfile(worker_node_ips, self.request_directory)
@@ -190,26 +190,34 @@ class Runner:
         return args
 
     def get_renumber_command(self, input_json):
-        problem_path = input_json.get("problem_path")
+        problem_path = input_json.get("formula_file")
         args = ['/competition/proof_renumber.sh'] # the arguments are currently baked into the script
         return args
 
     def get_check_command(self, input_json):
-        problem_path = input_json.get("problem_path")
+        problem_path = input_json.get("formula_file")
         args = ['/competition/proof_check.sh', problem_path]
         return args
     
     def get_drat_combine_command(self, input_json):
-        args = ['/competition/drat_compose.sh', input_json.get("problem_path")]
+        args = ['/competition/drat_compose.sh', input_json.get("formula_file")]
         return args
 
     def get_drat_check_command(self, input_json):
-        args = ['/drat-trim', input_json.get("problem_path"), '/logs/processes/final.drat']
+        args = ['/drat-trim', input_json.get("formula_file"), '/logs/processes/final.drat']
         return args
+
+SAT_RETURN_CODE = 10
+UNSAT_RETURN_CODE = 20
+INTERNAL_ERROR_RETURN_CODE = -100
+UNKNOWN_RETURN_CODE = 0
+SOLVER_TIMED_OUT_RETURN_CODE = 5
+PROOF_TIMED_OUT_RETURN_CODE = 6
+INFRA_TIMED_OUT_RETURN_CODE = 7
 
 class MallobParser:
     @staticmethod
-    def get_result(output_file, stderr_file):
+    def get_result(output_file, stderr_file, timing):
         """
         TODO: Participants should replace this with something more robust for their own solver!
         """
@@ -227,6 +235,8 @@ class MallobParser:
                 outcome = "UNSATISFIABLE"
             elif "[ERROR]" in raw_logs:
                 outcome = "ERROR"
+            elif timing > 1000:
+                outcome = "SOLVER_TIMED_OUT"
             else:
                 outcome = "UNKNOWN"
 
@@ -253,9 +263,20 @@ class MallobParser:
         
         return outcome
 
-    
-
-            
+    @staticmethod
+    def get_return_code(result): 
+        if result == "SATISFIABLE":
+            return SAT_RETURN_CODE  
+        elif result == "UNSATISFIABLE":
+            return UNSAT_RETURN_CODE  
+        elif result == "PROOF_TIMED_OUT":
+            return PROOF_TIMED_OUT_RETURN_CODE 
+        elif result == "SOLVER_TIMED_OUT":
+            return SOLVER_TIMED_OUT_RETURN_CODE   
+        elif result == "UNKNOWN":
+            return UNKNOWN_RETURN_CODE   
+        else:
+            return INTERNAL_ERROR_RETURN_CODE  # ERROR            
 
 
 def main():
@@ -270,12 +291,12 @@ def main():
     time_remaining = TOTAL_TIME
 
     task_output = runner.run(cmd, time_remaining)
-    result = MallobParser.get_result(task_output["stdout"], task_output["stderr"])
-    return_code = task_output["return_code"]
+    result = MallobParser.get_result(task_output["stdout"], task_output["stderr"], task_output["time"])
     runner.logger.info(f"RESULT: {result}")
     time_remaining = time_remaining - task_output["time"]
     if task_output["timed_out"]:
-        result = "TIMED_OUT"
+        result = "SOLVER_TIMED_OUT"
+    return_code = MallobParser.get_return_code(result)
 
     # proof check sequence
     if pipeline_mode == PipelineMode.SINGLE_MACHINE_64HWT_SEQ_PPROD_AND_DRAT:
@@ -304,12 +325,13 @@ def main():
                 result = "ERROR"
                 break
             elif task_output["timed_out"]:
-                runner.logger.info(f"Time-out during cmd {cmd}.  Returning 'UNVERIFIED UNSATISFIABLE'.")
-                result = "UNVERIFIED UNSATISFIABLE"
+                runner.logger.info(f"Time-out during cmd {cmd}.  Returning 'PROOF_TIMED_OUT'.")
+                result = "PROOF_TIMED_OUT"
+                return_code = -20
                 break
         if result == "UNSATISFIABLE": 
             runner.logger.info(f"Checker return code was zero.  Check successful!")
-
+            return_code = 20
                     
     # clean up.
     runner.run(['/competition/cleanup'], time_remaining, True)
